@@ -1,0 +1,9 @@
+{
+  "namespace": "com.github.matjazmav.todo.common.kafka.avsc.item",
+  "type": "record",
+  "name": "ItemAddedEvent",
+  "fields": [
+    {"name": "id", "type": "string"},
+    {"name": "description", "type": "string"}
+  ]
+}

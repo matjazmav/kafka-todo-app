@@ -1,0 +1,8 @@
+{
+  "namespace": "com.github.matjazmav.todo.common.kafka.avsc.item",
+  "type": "record",
+  "name": "ItemRemovedEvent",
+  "fields": [
+    {"name": "id", "type": "string"}
+  ]
+}

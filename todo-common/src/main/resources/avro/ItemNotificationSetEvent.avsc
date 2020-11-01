@@ -1,0 +1,9 @@
+{
+  "namespace": "com.github.matjazmav.todo.common.kafka.avsc.item",
+  "type": "record",
+  "name": "ItemNotificationSetEvent",
+  "fields": [
+    {"name": "id", "type": "string"},
+    {"name": "notifyOn", "type": "string"}
+  ]
+}
