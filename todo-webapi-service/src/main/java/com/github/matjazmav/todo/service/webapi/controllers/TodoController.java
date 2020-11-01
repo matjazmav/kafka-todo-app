@@ -24,7 +24,7 @@ public class TodoController {
     private static Logger logger = LoggerFactory.getLogger(TodoController.class);
 
     @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private KafkaTemplate<String, ItemMutationEvent> kafkaTemplate;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TodoItem>>> list()
@@ -44,7 +44,10 @@ public class TodoController {
     public ResponseEntity<ApiResponse<String>> add(@RequestBody String description)
     {
         val id = UUID.randomUUID().toString();
-        sendItemEvent(id, new ItemAddedEvent(id, description));
+        sendItemEvent(id, new ItemMutationEvent(){{
+            setId(id);
+            setDescription(description);
+        }});
         return ApiResponse.ok(id);
     }
 
@@ -53,7 +56,10 @@ public class TodoController {
             @PathVariable String id,
             @RequestBody String description)
     {
-        sendItemEvent(id, new ItemEditedEvent(id, description));
+        sendItemEvent(id, new ItemMutationEvent(){{
+            setId(id);
+            setDescription(description);
+        }});
         return ApiResponse.ok();
     }
 
@@ -62,43 +68,55 @@ public class TodoController {
             @PathVariable String id,
             @RequestBody LocalDateTime notifyOn)
     {
-        sendItemEvent(id, new ItemNotificationSetEvent(id, notifyOn.format(DateTimeFormatter.ISO_DATE_TIME)));
+        sendItemEvent(id, new ItemMutationEvent(){{
+            setId(id);
+            setNotifyOn(notifyOn.format(DateTimeFormatter.ISO_DATE_TIME));
+        }});
         return ApiResponse.ok();
     }
 
     @PostMapping("/{id}/check")
     public ResponseEntity<ApiResponse> check(@PathVariable String id)
     {
-        sendItemEvent(id, new ItemCheckedEvent(id));
+        sendItemEvent(id, new ItemMutationEvent(){{
+            setId(id);
+            setIsChecked(true);
+        }});
         return ApiResponse.ok();
     }
 
     @PostMapping("/{id}/uncheck")
     public ResponseEntity<ApiResponse> uncheck(@PathVariable String id)
     {
-        sendItemEvent(id, new ItemUncheckedEvent(id));
+        sendItemEvent(id, new ItemMutationEvent(){{
+            setId(id);
+            setIsChecked(false);
+        }});
         return ApiResponse.ok();
     }
 
     @PostMapping("/{id}/remove")
     public ResponseEntity<ApiResponse> remove(@PathVariable String id)
     {
-        sendItemEvent(id, new ItemRemovedEvent(id));
+        sendItemEvent(id, new ItemMutationEvent(){{
+            setId(id);
+            setIsDeleted(true);
+        }});
         return ApiResponse.ok();
     }
 
     @SneakyThrows
-    private void sendItemEvent(String key, Object value)
+    private void sendItemEvent(String key, ItemMutationEvent value)
     {
         val promise = kafkaTemplate.send(KafkaConfig.TOPIC_CORE_CMD_ITEM_V1, key, value);
-        promise.addCallback(new ListenableFutureCallback<SendResult<String, Object>>() {
+        promise.addCallback(new ListenableFutureCallback<SendResult<String, ItemMutationEvent>>() {
             @Override
             public void onFailure(Throwable ex) {
                 logger.error("Event failed with: ", ex);
             }
 
             @Override
-            public void onSuccess(SendResult<String, Object> result) {
+            public void onSuccess(SendResult<String, ItemMutationEvent> result) {
                 val eventName = result.getProducerRecord().value().getClass().getSimpleName();
                 val eventKey = result.getProducerRecord().key();
                 logger.info("Event '" + eventName + "' with key '" + eventKey + "'...");

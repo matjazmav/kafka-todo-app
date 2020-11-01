@@ -14,16 +14,17 @@ import org.springframework.kafka.core.*;
 public class App {
 
     public static void main(String[] args) {
+        KafkaConfig.ensureTopics(App.class.getName());
         SpringApplication.run(App.class, args);
     }
 
     @Bean
-    public ProducerFactory<String, Object> producerFactory() {
+    public ProducerFactory<String, ItemMutationEvent> producerFactory() {
         return new DefaultKafkaProducerFactory<>(KafkaConfig.getProducerConfig(this.getClass().getName()));
     }
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<String, Object>(producerFactory());
+    public KafkaTemplate<String, ItemMutationEvent> kafkaTemplate() {
+        return new KafkaTemplate<String, ItemMutationEvent>(producerFactory());
     }
 }

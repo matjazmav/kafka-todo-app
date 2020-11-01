@@ -1,0 +1,13 @@
+{
+  "namespace": "com.github.matjazmav.todo.common.kafka.avsc.item",
+  "type": "record",
+  "name": "ItemMutationEvent",
+  "fields": [
+    {"name": "id",            "type": "string"},
+    {"name": "description",   "type": ["null","string"],   "default": null},
+    {"name": "notifyOn",      "type": ["null","string"],   "default": null},
+    {"name": "isChecked",     "type": ["null","boolean"],  "default": null},
+    {"name": "color",         "type": ["null","string"],   "default": null},
+    {"name": "isDeleted",     "type": ["null","boolean"],  "default": null}
+  ]
+}
