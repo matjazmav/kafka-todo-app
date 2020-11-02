@@ -10,6 +10,7 @@ import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.config.*;
+import org.apache.kafka.common.metrics.*;
 import org.apache.kafka.common.serialization.*;
 import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.kstream.*;
@@ -24,19 +25,21 @@ public class KafkaConfig {
 
     public static final String TOPIC_CORE_CMD_ITEM_V1 = "coreCmdItemV1";
 
-    public static Map<String, Object> getAdminClientConfig(@NonNull String clientId) {
-        return new HashMap<String, Object>(){{
+    public static final String STORE_ITEMS = "items";
+
+    public static Properties getAdminClientConfig(@NonNull String clientId) {
+        return new Properties(){{
             put(AdminClientConfig.CLIENT_ID_CONFIG, clientId);
             put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
         }};
     }
 
-    public static Map<String, Object> getProducerConfig(@NonNull String clientId) {
-        return new HashMap<String, Object>(){{
+    public static Properties getProducerConfig(@NonNull String clientId) {
+        return new Properties(){{
             put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
             put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
-            put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-            put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
+            put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class.getName());
 
             // Safe producer
             put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
@@ -49,23 +52,29 @@ public class KafkaConfig {
         }};
     }
 
-    public static Map<String, Object> getConsumerConfig(@NonNull String groupId) {
-        return new HashMap<String, Object>(){{
+    public static Properties getConsumerConfig(@NonNull String groupId) {
+        return new Properties(){{
             put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
             put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
-            put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringSerializer.class);
-            put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
+            put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class.getName());
             put(KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, SCHEMA_REGISTRY_URL);
         }};
     }
 
-    public static Map<String, Object> getStreamsConfig(@NonNull String applicationId) {
-        return new HashMap<String, Object>(){{
+    public static Properties getStreamsConfig(@NonNull String applicationId) {
+        return new Properties(){{
             put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
             put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
-            put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, SpecificAvroSerde.class);
-            put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, SpecificAvroSerde.class);
-            put("schema.registry.url", SCHEMA_REGISTRY_URL);
+            put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+            put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, SpecificAvroSerde.class.getName());
+            put(KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, SCHEMA_REGISTRY_URL);
+        }};
+    }
+
+    public static Properties getSerdesConfig() {
+        return new Properties(){{
+            put(KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, SCHEMA_REGISTRY_URL);
         }};
     }
 
@@ -95,20 +104,5 @@ public class KafkaConfig {
         adminClient.close();
     }
 
-//    public static void getItemsTable() {
-//        val streamsConfig = new StreamsConfig(getStreamsConfig("my-app"));
-//        StreamsBuilder builder = new StreamsBuilder();
-//
-//        KTable<String, ItemMutationEvent> itemsTable;
-//
-//        itemsTable.
-//
-////        GlobalKTable<String, Long> wordCounts = builder.globalTable(
-////                "word-counts-input-topic",
-////                Materialized.<String, Long, KeyValueStore<Bytes, byte[]>>as(
-////                        "word-counts-global-store" /* table/store name */)
-////                        .withKeySerde(Serdes.String()) /* key serde */
-////                        .withValueSerde(Serdes.Long()) /* value serde */
-////        );
-//    }
+
 }

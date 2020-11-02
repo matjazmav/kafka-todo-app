@@ -4,9 +4,13 @@ import com.github.matjazmav.todo.common.kafka.*;
 import com.github.matjazmav.todo.common.kafka.avsc.item.*;
 import com.github.matjazmav.todo.service.webapi.entities.*;
 import lombok.*;
+import org.apache.kafka.streams.*;
+import org.apache.kafka.streams.state.*;
+import org.apache.kafka.streams.state.internals.*;
 import org.slf4j.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.http.*;
+import org.springframework.kafka.config.*;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.support.*;
 import org.springframework.util.concurrent.*;
@@ -16,28 +20,30 @@ import java.time.*;
 import java.time.format.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.*;
 
 @RestController
 @RequestMapping("/todo")
+@RequiredArgsConstructor
 public class TodoController {
 
     private static Logger logger = LoggerFactory.getLogger(TodoController.class);
 
-    @Autowired
-    private KafkaTemplate<String, ItemMutationEvent> kafkaTemplate;
+    private final KafkaTemplate<String, ItemMutationEvent> kafkaTemplate;
+    private final KafkaStreams streams;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TodoItem>>> list()
     {
-        return ApiResponse.ok(Arrays.asList(
-                TodoItem.of("id0", "Wash dishes", null, false),
-                TodoItem.of("id1", "Study", null, false),
-                TodoItem.of("id2", "Work on this app", LocalDateTime.now().plusDays(5), false),
-                TodoItem.of("id3", "Go for run", null, true),
-                TodoItem.of("id4", "Call home", null, true),
-                TodoItem.of("id5", null, null, false),
-                TodoItem.of("id6", "...", null, false)
-        ));
+        Iterable<KeyValue<String, ItemMutationEvent>> x = () -> getItemsStore().all();
+
+        var list = StreamSupport
+            .stream(x.spliterator(), true)
+            .map(kv -> kv.value)
+                .map(v -> TodoItem.of(v.getId().toString(), v.getDescription().toString(), null, false))
+            .collect(Collectors.toList());
+
+        return ApiResponse.ok(list);
     }
 
     @PostMapping("/add")
@@ -123,5 +129,10 @@ public class TodoController {
             }
         });
         kafkaTemplate.flush();
+    }
+
+    private ReadOnlyKeyValueStore<String, ItemMutationEvent> getItemsStore() {
+        return streams
+                .store(StoreQueryParameters.fromNameAndType(KafkaConfig.STORE_ITEMS, QueryableStoreTypes.keyValueStore()));
     }
 }
